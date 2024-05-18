@@ -13,8 +13,10 @@ struct TriggerBot {
     }
     
     void shootAtEnemy(int counter) {
-        if (!cl->FEATURE_TRIGGERBOT_ON || display->keyDown(cl->TRIGGERBOT_PAUSE_BUTTON)) return;
+        if (!cl->FEATURE_TRIGGERBOT_ON || display->keyDown(cl->TRIGGERBOT_SHOOT_BUTTON)) return;
+        if (!display->keyDown(cl->TRIGGERBOT_SHOOT_BUTTON)) return;
         if (!lp->isCombatReady()) return;
+
         
         int weaponId = lp->weaponIndex;
         //printf("Last weapon held: [%s] - id: [%d]- GrenadeID: [%d] - Ammo: [%d]\n", WeaponName(weaponId).c_str(), weaponId, lp->grenadeID, lp->ammoInClip);        
@@ -33,8 +35,24 @@ struct TriggerBot {
             weaponId != WEAPON_3030 &&
             weaponId != WEAPON_TRIPLE_TAKE &&
             weaponId != WEAPON_BOCEK &&
-            weaponId != WEAPON_THROWING_KNIFE
-            )return;
+            weaponId != WEAPON_THROWING_KNIFE &&
+            weaponId != WEAPON_R99 &&
+            weaponId != WEAPON_R301 &&
+            weaponId != WEAPON_FLATLINE &&
+            weaponId != WEAPON_HAVOC &&
+            weaponId != WEAPON_DEVOTION &&
+            weaponId != WEAPON_LSTAR &&
+            weaponId != WEAPON_ALTERNATOR &&
+            weaponId != WEAPON_PROWLER &&
+            weaponId != WEAPON_VOLT &&
+            weaponId != WEAPON_CAR &&
+            weaponId != WEAPON_SPUITFIRE &&
+            weaponId != WEAPON_RAMPAGE &&
+            weaponId != WEAPON_RE45 &&
+            weaponId != WEAPON_CHARGE_RIFLE &&
+            weaponId != WEAPON_SCOUT &&
+            weaponId != WEAPON_VK47_FLATLINE
+          ) return;
 
         const float RANGE_MAX = (lp->inZoom) ? util::metersToGameUnits(cl->TRIGGERBOT_ZOOMED_RANGE) : util::metersToGameUnits(cl->TRIGGERBOT_HIPFIRE_RANGE);
 

@@ -46,7 +46,7 @@ struct ConfigLoader {
     std::string FEATURE_QUICKTURN_BUTTON = "XK_f";
     std::string FEATURE_PRINT_LEVELS_BUTTON = "XK_p";
     std::string FEATURE_MAP_RADAR_BUTTON = "XK_m";
-    std::string TRIGGERBOT_PAUSE_BUTTON = "XK_z";
+    std::string TRIGGERBOT_SHOOT_BUTTON = "XK_z";
 
     void loadVariables(std::string key, std::string val) {
         //features
@@ -61,7 +61,7 @@ struct ConfigLoader {
         //triggerBot
         TRIGGERBOT_ZOOMED_RANGE = (key.compare("TRIGGERBOT_ZOOMED_RANGE") != 0) ? TRIGGERBOT_ZOOMED_RANGE : stoi(val);
         TRIGGERBOT_HIPFIRE_RANGE = (key.compare("TRIGGERBOT_HIPFIRE_RANGE") != 0) ? TRIGGERBOT_HIPFIRE_RANGE : stoi(val);
-        TRIGGERBOT_PAUSE_BUTTON = (key.compare("TRIGGERBOT_PAUSE_BUTTON") != 0) ? TRIGGERBOT_PAUSE_BUTTON : trimConstructive(val);
+        TRIGGERBOT_SHOOT_BUTTON = (key.compare("TRIGGERBOT_SHOOT_BUTTON") != 0) ? TRIGGERBOT_SHOOT_BUTTON : trimConstructive(val);
         //sense
         SENSE_MAXRANGE = (key.compare("SENSE_MAXRANGE") != 0) ? SENSE_MAXRANGE : stoi(val);
         //aimbot
@@ -113,7 +113,7 @@ struct ConfigLoader {
         //triggerBot
         printf("TRIGGERBOT_ZOOMED_RANGE\t\t\t\t\t%d\n", TRIGGERBOT_ZOOMED_RANGE);
         printf("TRIGGERBOT_HIPFIRE_RANGE\t\t\t\t%d\n", TRIGGERBOT_HIPFIRE_RANGE);
-        printf("TRIGGERBOT_PAUSE_BUTTON\t\t\t\t\t%s\n", TRIGGERBOT_PAUSE_BUTTON.c_str());
+        printf("TRIGGERBOT_SHOOT_BUTTON\t\t\t\t\t%s\n", TRIGGERBOT_SHOOT_BUTTON.c_str());
         printf("~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~\n");
         //sense
         printf("SENSE_MAXRANGE\t\t\t\t\t\t%d\n", SENSE_MAXRANGE);
