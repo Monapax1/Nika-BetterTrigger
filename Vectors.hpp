@@ -1,141 +1,134 @@
 #pragma once
+#include <cmath>
+
 struct Vector2D {
     float x, y;
 
-    Vector2D() : x(0), y(0) {}
+    // Konstanten für Vektoren
+    static const Vector2D ZERO;
+    static const Vector2D ONE;
+    static const Vector2D UNIT_X;
+    static const Vector2D UNIT_Y;
 
-    Vector2D(float x_val, float y_val) : x(x_val), y(y_val) {}
+    // Konstruktor
+    Vector2D(float x_val = 0, float y_val = 0) : x(x_val), y(y_val) {}
 
-    Vector2D Subtract(const Vector2D& other) const {
-        return Vector2D(x - other.x, y - other.y);
-    }
-    Vector2D Add(const Vector2D& other) const {
+    // Addition
+    Vector2D operator+(const Vector2D& other) const {
         return Vector2D(x + other.x, y + other.y);
     }
-    Vector2D Divide(const Vector2D& other) const {
-        return Vector2D(x / other.x, y / other.y);
+
+    // Subtraktion
+    Vector2D operator-(const Vector2D& other) const {
+        return Vector2D(x - other.x, y - other.y);
     }
-    Vector2D Divide(float scalar) const {
-        return Vector2D(x / scalar, y / scalar);
-    }
-    Vector2D Multiply(float scalar) const {
+
+    // Multiplikation mit Skalar
+    Vector2D operator*(float scalar) const {
         return Vector2D(x * scalar, y * scalar);
     }
-    Vector2D Normalized() const {
-        Vector2D result;
-        float length = std::sqrt(x * x + y * y);
-        if (length != 0) {
-            result.x = x / length;
-            result.y = y / length;
+
+    // Division durch Skalar
+    Vector2D operator/(float scalar) const {
+        if (scalar != 0) {
+            return Vector2D(x / scalar, y / scalar);
+        } else {
+            // Behandlung von Division durch Null
+            return *this;
         }
-        return result;
     }
-    Vector2D MultipliedByScalar(float scalar) const {
-        Vector2D result;
-        result.x = x * scalar;
-        result.y = y * scalar;
-        return result;
+
+    // Normalisierungsfunktion
+    Vector2D Normalized() const {
+        float length = Magnitude();
+        if (length != 0) {
+            return *this / length;
+        } else {
+            return *this;
+        }
     }
-    Vector2D Clamp() const {
-        float clampedX = x;
-        if (clampedX < -89) clampedX = -89;
-        if (clampedX > 89) clampedX = 89;
-        float clampedY = y;
-        if (clampedY < -180) clampedY += 360;
-        if (clampedY > 180) clampedY -= 360;
-        if (clampedX > 89 || clampedX < -89) throw std::invalid_argument("BAD PITCH CLAMPING. CHECK YOUR CODE");
-        if (clampedY > 180 || clampedY < -180) throw std::invalid_argument("BAD YAW CLAMPING. CHECK YOUR CODE");
-        return Vector2D(clampedX, clampedY);
-    }
+
+    // Dot-Produkt
     float DotProduct(const Vector2D& other) const {
         return x * other.x + y * other.y;
     }
+
+    // Magnitude (Länge)
     float Magnitude() const {
         return std::sqrt(x * x + y * y);
     }
+
+    // Distance (Abstand zu einem anderen Vektor)
     float Distance(const Vector2D& other) const {
-        Vector2D diff = Subtract(other);
-        return diff.Magnitude();
+        return (*this - other).Magnitude();
     }
-    bool IsZeroVector() {
+
+    // Überprüfen, ob der Vektor Null ist
+    bool IsZeroVector() const {
         return x == 0 && y == 0;
     }
-    bool operator==(const Vector2D& other) const {
-        float epsilon = 1e-5;
-        return (std::abs(x - other.x) < epsilon)
-            && (std::abs(y - other.y) < epsilon);
-    }
-    bool operator!=(const Vector2D& other) const {
-        return !(*this == other);
-    }
 };
+
+// Konstanteninitialisierung
+const Vector2D Vector2D::ZERO = Vector2D(0, 0);
+const Vector2D Vector2D::ONE = Vector2D(1, 1);
+const Vector2D Vector2D::UNIT_X = Vector2D(1, 0);
+const Vector2D Vector2D::UNIT_Y = Vector2D(0, 1);
+
 
 struct Vector3D {
     float x, y, z;
 
-    Vector3D() : x(0), y(0), z(0) {}
+    // Konstruktor
+    Vector3D(float x_val = 0, float y_val = 0, float z_val = 0) : x(x_val), y(y_val), z(z_val) {}
 
-    Vector3D(float x_val, float y_val, float z_val) : x(x_val), y(y_val), z(z_val) {}
-
-    Vector3D Subtract(const Vector3D& other) const {
-        return Vector3D(x - other.x, y - other.y, z - other.z);
-    }
-    Vector3D Add(const Vector3D& other) const {
+    // Addition
+    Vector3D operator+(const Vector3D& other) const {
         return Vector3D(x + other.x, y + other.y, z + other.z);
     }
-    Vector3D& Normalize() {
-        float len = Magnitude();
-        if (len > 0) {
-            x /= len;
-            y /= len;
-            z /= len;
-        }
-        return *this;
+
+    // Subtraktion
+    Vector3D operator-(const Vector3D& other) const {
+        return Vector3D(x - other.x, y - other.y, z - other.z);
     }
-    Vector3D Multiply(float scalar) const {
+
+    // Multiplikation mit Skalar
+    Vector3D operator*(float scalar) const {
         return Vector3D(x * scalar, y * scalar, z * scalar);
     }
-    Vector2D To2D() const {
-        return Vector2D(x, y);
+
+    // Division durch Skalar
+    Vector3D operator/(float scalar) const {
+        if (scalar != 0) {
+            return Vector3D(x / scalar, y / scalar, z / scalar);
+        } else {
+            // Behandlung von Division durch Null
+            return *this;
+        }
     }
-    Vector3D& operator+=(const Vector3D& other) {
-        x += other.x;
-        y += other.y;
-        z += other.z;
-        return *this;
+
+    // Normalisierungsfunktion
+    Vector3D Normalized() const {
+        float length = Magnitude();
+        if (length != 0) {
+            return *this / length;
+        } else {
+            return *this;
+        }
     }
-    float DotProduct(const Vector3D& other) const {
-        return x * other.x + y * other.y + z * other.z;
-    }
+
+    // Magnitude (Länge)
     float Magnitude() const {
         return std::sqrt(x * x + y * y + z * z);
     }
-    float Magnitude2D() const {
-        return std::sqrt(x * x + y * y);
-    }
+
+    // Distance (Abstand zu einem anderen Vektor)
     float Distance(const Vector3D& other) const {
-        Vector3D diff = Subtract(other);
-        return diff.Magnitude();
+        return (*this - other).Magnitude();
     }
-    float Distance2D(const Vector3D& other) const {
-        return (other.Subtract(*this)).Magnitude2D();
-    };
-    bool IsZeroVector() {
+
+    // Überprüfen, ob der Vektor Null ist
+    bool IsZeroVector() const {
         return x == 0 && y == 0 && z == 0;
-    }
-    bool IsValid() {
-        if(std::isnan(x) || std::isinf(x) || std::isnan(y) || std::isinf(y) || std::isnan(z) || std::isinf(z)) {
-            return false;
-        }
-        return true;
-    }
-    bool operator==(const Vector3D& other) const {
-        float epsilon = 1e-5;
-        return (std::abs(x - other.x) < epsilon)
-            && (std::abs(y - other.y) < epsilon)
-            && (std::abs(z - other.z) < epsilon);
-    }
-    bool operator!=(const Vector3D& other) const {
-        return !(*this == other);
     }
 };
