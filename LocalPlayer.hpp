@@ -1,6 +1,7 @@
 #pragma once
+
 struct LocalPlayer {
-    MyDisplay *display;
+    MyDisplay *const display;
     uint64_t base;
     bool dead;
     bool knocked;
@@ -83,17 +84,16 @@ struct LocalPlayer {
             WeaponProjectileScale = mem::Read<float>(weaponEntity + OFF_PROJECTILESCALE, "LocalPlayer WeaponProjectileScale");   
         }
     }
-    bool isValid() {
+
+    bool isValid() const {
         return base != 0;
     }
-    bool isCombatReady() {
-        if (base == 0) return false;
-        if (dead) return false;
-        if (knocked) return false;
-        return true;
+
+    bool isCombatReady() const {
+        return !dead && !knocked && base != 0;
     }
-    void setYaw(float angle)
-    {
+
+    void setYaw(float angle) {
         long ptrLong = base + OFF_VIEW_ANGLES + sizeof(float);
         mem::Write<float>(ptrLong, angle);
     }
