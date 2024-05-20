@@ -1,17 +1,12 @@
 #pragma once
 #include "LocalPlayer.hpp"
 #include "Player.hpp"
-#include "ConfigLoader.hpp"
-#include "MyDisplay.hpp"
-#include "Resolver.hpp"
-#include "Conversion.hpp"
-#include <vector>
 
 struct Aim {
     HitboxType Hitbox = HitboxType::Neck;
     float FinalDistance = 0;
     float FinalFOV = 0;
-    float HipfireDistance = 60;
+    constexpr static float HipfireDistance = 60;
 
     MyDisplay* display;
     LocalPlayer* lp;
@@ -20,45 +15,35 @@ struct Aim {
     Player* CurrentTarget = nullptr;
     bool TargetSelected = true;
 
-    Aim(MyDisplay* myDisplay, LocalPlayer* localPlayer, std::vector<Player*>* all_players, ConfigLoader* ConfigLoada) {
-        this->display = myDisplay;
-        this->lp = localPlayer;
-        this->players = all_players;
-        this->cl = ConfigLoada;
-    }
+    Aim(MyDisplay* myDisplay, LocalPlayer* localPlayer, std::vector<Player*>* all_players, ConfigLoader* ConfigLoada)
+        : display(myDisplay), lp(localPlayer), players(all_players), cl(ConfigLoada) {}
 
     bool active() {
         bool aimbotIsOn = cl->FEATURE_AIMBOT_ON;
         bool combatReady = lp->isCombatReady();
         bool activatedByAttack = cl->AIMBOT_ACTIVATED_BY_ATTACK && lp->inAttack;
         bool activatedByADS = cl->AIMBOT_ACTIVATED_BY_ADS && lp->inZoom;
-        bool activatedByKey = cl->AIMBOT_ACTIVATED_BY_KEY && cl->AIMBOT_ACTIVATION_KEY != "" && display->keyDown(cl->AIMBOT_ACTIVATION_KEY);
+        bool activatedByKey = cl->AIMBOT_ACTIVATED_BY_KEY && !cl->AIMBOT_ACTIVATION_KEY.empty() && display->keyDown(cl->AIMBOT_ACTIVATION_KEY);
         return aimbotIsOn && combatReady && (activatedByAttack || activatedByADS || activatedByKey);
     }
 
     void update(int counter) {
-        if (lp->grippingGrenade) {
+        if (lp->grippingGrenade || !active()) {
             ReleaseTarget();
             return;
         }
-        if (!active()) {
-            ReleaseTarget();
-            return;
-        }
+
         if (lp->inZoom) {
             FinalFOV = cl->AIMBOT_FOV;
             FinalDistance = cl->AIMBOT_MAX_DISTANCE;
         } else {
-            FinalFOV = (cl->AIMBOT_FOV + 20);
+            FinalFOV = cl->AIMBOT_FOV + 20;
             FinalDistance = HipfireDistance;
         }
 
         Player* Target = CurrentTarget;
         if (!IsValidTarget(Target)) {
-            if (TargetSelected && !cl->AIMBOT_ALLOW_TARGET_SWITCH) {
-                return;
-            }
-
+            if (TargetSelected && !cl->AIMBOT_ALLOW_TARGET_SWITCH) return;
             Target = FindBestTarget();
             if (!IsValidTarget(Target)) {
                 CurrentTarget = nullptr;
@@ -78,46 +63,36 @@ struct Aim {
     }
 
     void StartAiming() {
-        QAngle DesiredAngles = QAngle(0, 0);
+        QAngle DesiredAngles;
         if (!GetAngle(CurrentTarget, DesiredAngles)) return;
 
-        Vector2D DesiredAnglesIncrement = Vector2D(CalculatePitchIncrement(DesiredAngles), CalculateYawIncrement(DesiredAngles));
-
+        Vector2D DesiredAnglesIncrement(CalculatePitchIncrement(DesiredAngles), CalculateYawIncrement(DesiredAngles));
         float Extra = cl->AIMBOT_SMOOTH_EXTRA_BY_DISTANCE / CurrentTarget->distanceToLocalPlayer;
         float TotalSmooth = cl->AIMBOT_SMOOTH + Extra;
 
         Vector2D punchAnglesDiff = lp->punchAnglesDiff.Divide(cl->AIMBOT_SMOOTH).Multiply(cl->AIMBOT_SPEED);
-        double nrPitchIncrement = punchAnglesDiff.x;
-        double nrYawIncrement = -punchAnglesDiff.y;
-
         Vector2D aimbotDelta = DesiredAnglesIncrement.Divide(TotalSmooth).Multiply(cl->AIMBOT_SPEED);
-        double aimYawIncrement = aimbotDelta.y * -1;
-        double aimPitchIncrement = aimbotDelta.x;
 
-        double totalPitchIncrement = aimPitchIncrement + nrPitchIncrement;
-        double totalYawIncrement = aimYawIncrement + nrYawIncrement;
+        double totalPitchIncrement = aimbotDelta.x + punchAnglesDiff.x;
+        double totalYawIncrement = -aimbotDelta.y + -punchAnglesDiff.y;
 
         int totalPitchIncrementInt = RoundHalfEven(AL1AF0(totalPitchIncrement));
         int totalYawIncrementInt = RoundHalfEven(AL1AF0(totalYawIncrement));
 
-        if (totalPitchIncrementInt == 0 && totalYawIncrementInt == 0) return;
-        display->moveMouseRelative(totalPitchIncrementInt, totalYawIncrementInt);
+        if (totalPitchIncrementInt != 0 || totalYawIncrementInt != 0) {
+            display->moveMouseRelative(totalPitchIncrementInt, totalYawIncrementInt);
+        }
     }
 
     bool GetAngle(const Player* Target, QAngle& Angle) {
-        const QAngle CurrentAngle = QAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
-        if (!CurrentAngle.isValid()) return false;
-
-        if (!GetAngleToTarget(Target, Angle)) return false;
-
-        return true;
+        const QAngle CurrentAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
+        return CurrentAngle.isValid() && GetAngleToTarget(Target, Angle);
     }
 
     bool GetAngleToTarget(const Player* Target, QAngle& Angle) const {
         const Vector3D TargetPosition = Target->GetBonePosition(Hitbox);
         const Vector3D TargetVelocity = Target->AbsoluteVelocity;
         const Vector3D CameraPosition = lp->CameraPosition;
-        const QAngle CurrentAngle = QAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
 
         if (lp->WeaponProjectileSpeed > 1.0f) {
             if (cl->AIMBOT_PREDICT_BULLETDROP && cl->AIMBOT_PREDICT_MOVEMENT) {
@@ -133,50 +108,72 @@ struct Aim {
         return true;
     }
 
-    bool IsValidTarget(Player* target) {
-        if (target == nullptr ||
-            !target->isValid() || 
-            !target->isCombatReady() ||
-            !target->visible || 
-            !target->enemy || 
-            target->distance2DToLocalPlayer < Conversion::ToGameUnits(cl->AIMBOT_MIN_DISTANCE) || 
-            target->distance2DToLocalPlayer > Conversion::ToGameUnits(FinalDistance))
-            return false;
-        return true;
+    bool IsValidTarget(Player* target) const {
+        return target != nullptr &&
+            target->isValid() &&
+            target->isCombatReady() &&
+            target->visible &&
+            target->enemy &&
+            target->distance2DToLocalPlayer >= Conversion::ToGameUnits(cl->AIMBOT_MIN_DISTANCE) &&
+            target->distance2DToLocalPlayer <= Conversion::ToGameUnits(FinalDistance);
     }
 
-    float CalculatePitchIncrement(QAngle AimbotDesiredAngles) {
+    float CalculatePitchIncrement(QAngle AimbotDesiredAngles) const {
         float wayA = AimbotDesiredAngles.x - lp->viewAngles.x;
         float wayB = 180 - abs(wayA);
         if (wayA > 0 && wayB > 0) wayB *= -1;
-        if (fabs(wayA) < fabs(wayB)) return wayA;
-        return wayB;
+        return (fabs(wayA) < fabs(wayB)) ? wayA : wayB;
     }
 
-    float CalculateYawIncrement(QAngle AimbotDesiredAngles) {
+    float CalculateYawIncrement(QAngle AimbotDesiredAngles) const {
         float wayA = AimbotDesiredAngles.y - lp->viewAngles.y;
         float wayB = 360 - abs(wayA);
         if (wayA > 0 && wayB > 0) wayB *= -1;
-        if (fabs(wayA) < fabs(wayB)) return wayA;
-        return wayB;
+        return (fabs(wayA) < fabs(wayB)) ? wayA : wayB;
     }
 
-    double CalculateDistanceFromCrosshair(Player* target) {
+    double CalculateDistanceFromCrosshair(Player* target) const {
         Vector3D CameraPosition = lp->CameraPosition;
-        QAngle CurrentAngle = QAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
+        QAngle CurrentAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
 
         Vector3D TargetPos = target->localOrigin;
         if (CameraPosition.Distance(TargetPos) <= 0.0001f) return -1;
 
         QAngle TargetAngle = Resolver::CalculateAngle(CameraPosition, TargetPos);
-        if (!TargetAngle.isValid()) return -1;
-        
-        return CurrentAngle.distanceTo(TargetAngle);
+        return TargetAngle.isValid() ? CurrentAngle.distanceTo(TargetAngle) : -1;
     }
 
-    Player* FindBestTarget() {
+    Player* FindBestTarget() const {
         float NearestDistance = 9999;
         Player* BestTarget = nullptr;
-        Vector3D CameraPosition = lp->CameraPosition;
-        QAngle CurrentAngle = QAngle(lp->viewAngles.x, lp->viewAngles.y).fixAngle();
-        for (
+
+        for (Player* p : *players) {
+            if (!IsValidTarget(p)) continue;
+
+            double DistanceFromCrosshair = CalculateDistanceFromCrosshair(p);
+            if (DistanceFromCrosshair > FinalFOV || DistanceFromCrosshair == -1) continue;
+
+            if (DistanceFromCrosshair < NearestDistance) {
+                BestTarget = p;
+                NearestDistance = DistanceFromCrosshair;
+            }
+        }
+        return BestTarget;
+    }
+
+    void ReleaseTarget() {
+        if (CurrentTarget && CurrentTarget->isValid())
+            CurrentTarget->IsLockedOn = false;
+
+        TargetSelected = false;
+        CurrentTarget = nullptr;
+    }
+
+    int RoundHalfEven(float x) const {
+        return static_cast<int>(std::round(x >= 0.0 ? x : -x) * (x >= 0.0 ? 1 : -1));
+    }
+
+    float AL1AF0(float num) const {
+        return (num > 0) ? std::max(num, 1.0f) : std::min(num, -1.0f);
+    }
+};
