@@ -1,27 +1,37 @@
 #include "includes.hpp"
+
 int main() {
-    if (getuid()) { std::cout << "RUN AS SUDO!\n"; return -1; }
-    if (mem::GetPID() == 0) { std::cout << "OPEN APEX LEGENDS!\n"; return -1; }
+    if (getuid()) { 
+        std::cout << "RUN AS SUDO!\n"; 
+        return -1; 
+    }
+    if (mem::GetPID() == 0) { 
+        std::cout << "OPEN APEX LEGENDS!\n"; 
+        return -1; 
+    }
 
-    ConfigLoader* cl = new ConfigLoader();
-    MyDisplay* display = new MyDisplay();
-    Level* level = new Level();
-    LocalPlayer* localPlayer = new LocalPlayer();
-    std::vector<Player*>* humanPlayers = new std::vector<Player*>;
-    std::vector<Player*>* dummyPlayers = new std::vector<Player*>;
-    std::vector<Player*>* players = new std::vector<Player*>;
+    // Initialisierung der Klassen mit Smart Pointern
+    std::unique_ptr<ConfigLoader> cl(new ConfigLoader());
+    std::unique_ptr<MyDisplay> display(new MyDisplay());
+    std::unique_ptr<Level> level(new Level());
+    std::unique_ptr<LocalPlayer> localPlayer(new LocalPlayer());
+    std::unique_ptr<std::vector<Player*>> humanPlayers(new std::vector<Player*>);
+    std::unique_ptr<std::vector<Player*>> dummyPlayers(new std::vector<Player*>);
+    std::unique_ptr<std::vector<Player*>> players(new std::vector<Player*>);
 
-    //fill in slots for players, dummies and items
-    for (int i = 0; i < 60; i++) humanPlayers->push_back(new Player(i, localPlayer, cl));
-    for (int i = 0; i < 15000; i++) dummyPlayers->push_back(new Player(i, localPlayer, cl));
+    // Füllen der Spieler- und Dummy-Slots
+    for (int i = 0; i < 60; i++) 
+        humanPlayers->push_back(new Player(i, *localPlayer, *cl));
+    for (int i = 0; i < 15000; i++) 
+        dummyPlayers->push_back(new Player(i, *localPlayer, *cl));
 
-    //create features     
-    NoRecoil* noRecoil = new NoRecoil(cl, display, level, localPlayer);
-    TriggerBot* triggerBot = new TriggerBot(cl, display, localPlayer, players);
-    Sense* sense = new Sense(cl, level, localPlayer, players);
-    Random* random = new Random(cl, display, level, localPlayer, players);
-    Aim* aim = new Aim(display, localPlayer, players, cl);
- 
+    // Erstellung der Features mit Smart Pointern
+    std::unique_ptr<NoRecoil> noRecoil(new NoRecoil(*cl, *display, *level, *localPlayer));
+    std::unique_ptr<TriggerBot> triggerBot(new TriggerBot(*cl, *display, *localPlayer, *players));
+    std::unique_ptr<Sense> sense(new Sense(*cl, *level, *localPlayer, *players));
+    std::unique_ptr<Random> random(new Random(*cl, *display, *level, *localPlayer, *players));
+    std::unique_ptr<Aim> aim(new Aim(*display, *localPlayer, *players, *cl));
+
     int counter = 0;
     
     while (true) {
@@ -39,19 +49,16 @@ int main() {
             localPlayer->readFromMemory();
             if (!localPlayer->isValid()) throw std::invalid_argument("Select Legend");
 
-            //read players
+            // Spieler lesen
             players->clear();
             if (level->trainingArea)
-                for (int i = 0; i < dummyPlayers->size(); i++) {
-                    Player* p = dummyPlayers->at(i);
+                for (Player* p : *dummyPlayers) {
                     p->readFromMemory();
                     if (p->isValid()) players->push_back(p);
                 }
             else
-                for (int i = 0; i < humanPlayers->size(); i++) {
-                    Player* p = humanPlayers->at(i);
+                for (Player* p : *humanPlayers) {
                     p->readFromMemory();
-                    
                     if (p->isValid()) players->push_back(p);
                 }
                       
@@ -67,12 +74,11 @@ int main() {
             int timeLeftToSleep = std::max(0, goalSleepTime - processingTime);
             std::this_thread::sleep_for(std::chrono::milliseconds(timeLeftToSleep));
             
-            //print loop info every now and then
+            // Loop-Informationen gelegentlich ausgeben
             if (counter % 500 == 0)
+                printf("| [%04d] - Time: %02dms |\n", counter, processingTime);
             
-                printf("| [%04d] - Time: %02dms |\n",
-                    counter, processingTime);
-            //update counter
+            // Zähler aktualisieren
             counter = (counter < 1000) ? ++counter : counter = 0;
         }
         catch (std::invalid_argument& e) {
@@ -85,6 +91,3 @@ int main() {
         }    
     }
 }
-
-
-
